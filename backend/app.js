@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const express = require('express');
 const bookRoutes = require('./routes/book');
 const userRoutes = require('./routes/user');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -27,6 +28,7 @@ app.use(bodyParser.json());
 
 app.use('/api/books', bookRoutes);
 app.use('/api/auth', userRoutes);
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 // app.post('/api/books', (req, res, next) => {
 //   console.log(req.body);
