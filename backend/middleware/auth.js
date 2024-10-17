@@ -1,3 +1,4 @@
+//const jwt = require('jsonwebtoken');
 const jwt = require('jsonwebtoken');
  
 module.exports = (req, res, next) => {
@@ -10,6 +11,8 @@ module.exports = (req, res, next) => {
        };
 	next();
    } catch(error) {
+    //console.log("ошмбка аутентификации", req.headers.authorization.split(' ')[1] );
+    //console.log("ошмбка аутентификации", req.headers)
        res.status(401).json({ error });
    }
 };
