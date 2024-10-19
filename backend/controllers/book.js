@@ -16,6 +16,45 @@ exports.createBook = (req, res, next) => {
   .catch(error => { res.status(400).json( { error })})
 };
 
+exports.addRating = (req, res, next) => {
+    const { rating } = req.body; // Извлекаем рейтинг из тела запроса
+    console.log(rating);
+    const userId = req.auth.userId;
+    console.log(userId);
+    Book.findOne({ _id: req.params.id })
+        .then((book) => {
+            if (!book) {
+                return res.status(404).json({ message: 'Book not found' });
+            }
+            // if (book.userId != req.auth.userId) {
+            //     return res.status(401).json({ message: 'Not authorized' });
+            // }
+
+            const existingRating = book.ratings.find(r => r.userId === userId);
+            if (existingRating) {
+                return res.status(400).json({ message: 'Rating already added by user' });
+            }
+
+            // Добавляем рейтинг
+            console.log('avant push')
+            book.ratings.push({ userId, rating });
+            console.log('apres push')
+            // Сохраняем книгу с обновлёнными данными
+            book.save()
+                .then(() => res.status(200).json({ message: 'Rating added successfully!' }))
+                .catch((error) => res.status(500).json({ error }));
+            
+            //Book.updateOne({ _id: req.params.id})
+            // .then(() => res.status(200).json({message : 'Objet modifié!'}))
+            // .catch(error => res.status(401).json({ error }));
+
+        })
+        .catch((error) => {
+            res.status(400).json({ error });
+        });
+  };
+  
+    
 // exports.createBook =  (req, res, next) => {
 //   delete req.body._id;
 //   const book = new Book({
@@ -42,7 +81,7 @@ exports.modifyBook = (req, res, next) => {
 
   delete bookObject._userId;
   Book.findOne({_id: req.params.id})
-      .then((boook) => {
+      .then((book) => {
           if (book.userId != req.auth.userId) {
               res.status(401).json({ message : 'Not authorized'});
           } else {
