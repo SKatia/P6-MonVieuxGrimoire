@@ -36,17 +36,24 @@ exports.addRating = (req, res, next) => {
             }
 
             // Добавляем рейтинг
-            console.log('avant push')
+            //console.log('avant push')
             book.ratings.push({ userId, rating });
-            console.log('apres push')
+            console.log('book.ratings');
+            console.log(req.body); 
+
             // Сохраняем книгу с обновлёнными данными
             book.save()
-                .then(() => res.status(200).json({ message: 'Rating added successfully!' }))
-                .catch((error) => res.status(500).json({ error }));
+                .then((savedBook) => {
+                    console.log('Saved book:', savedBook);
+                    res.status(200).json({ message: 'Rating added successfully!' });
+                })
+                .catch((error) => {
+                    console.error('Error saving book:', error);
+                    res.status(500).json({ error });
+                });
+                // .then(() => res.status(200).json({ message: 'Rating added successfully!' }))
+                // .catch((error) => res.status(500).json({ error }));
             
-            //Book.updateOne({ _id: req.params.id})
-            // .then(() => res.status(200).json({message : 'Objet modifié!'}))
-            // .catch(error => res.status(401).json({ error }));
 
         })
         .catch((error) => {
