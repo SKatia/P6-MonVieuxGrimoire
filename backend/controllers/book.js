@@ -45,7 +45,8 @@ exports.addRating = (req, res, next) => {
             book.save()
                 .then((savedBook) => {
                     console.log('Saved book:', savedBook);
-                    res.status(200).json({ message: 'Rating added successfully!' });
+                    //res.status(200).json({ message: 'Rating added successfully!' });
+                    res.status(200).json(savedBook);
                 })
                 .catch((error) => {
                     console.error('Error saving book:', error);
