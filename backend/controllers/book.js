@@ -1,20 +1,52 @@
 const Book = require('../models/book');
 const fs = require('fs');
+const sharp = require('sharp');
 
 exports.createBook = (req, res, next) => {
     const bookObject = JSON.parse(req.body.book);
 
     delete bookObject._id;
     delete bookObject._userId;
-    const book = new Book({
-        ...bookObject,
-        userId: req.auth.userId,
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
-    });
 
-    book.save()
-        .then(() => { res.status(201).json({ message: 'Objet enregistré !' }) })
-        .catch(error => { res.status(400).json({ error }) })
+    const uploadedImagePath = `images/${req.file.filename}`;  // Путь к загруженному файлу
+    const optimizedImagePath = `images/optimized-${req.file.filename}`;  // Путь для оптимизированного файла
+
+    // Оптимизация изображения с помощью sharp
+    sharp(uploadedImagePath)
+        .resize({ width: 500 })  // Меняем размер изображения до 500 пикселей по ширине
+        .toFormat('jpeg')        // Конвертируем изображение в формат jpeg
+        .jpeg({ quality: 80 })   // Устанавливаем качество на 80%
+        .toFile(optimizedImagePath)
+        .then(() => {
+            // Удаляем оригинальное изображение, если оно больше не нужно
+            fs.unlink(uploadedImagePath, (err) => {
+                if (err) {
+                    console.error(err);
+                }
+            });
+
+            // Сохраняем данные книги с URL оптимизированного изображения
+            const book = new Book({
+                ...bookObject,
+                userId: req.auth.userId,
+                imageUrl: `${req.protocol}://${req.get('host')}/${optimizedImagePath}` // Путь к оптимизированному изображению
+            });
+
+            book.save()
+                .then(() => res.status(201).json({ message: 'Livre enregistré avec image optimisée!' }))
+                .catch(error => res.status(400).json({ error }));
+        })
+        .catch(error => res.status(500).json({ error: 'Erreur lors de l\'optimisation de l\'image' }));
+
+    // const book = new Book({
+    //     ...bookObject,
+    //     userId: req.auth.userId,
+    //     imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+    // });
+
+    // book.save()
+    //     .then(() => { res.status(201).json({ message: 'Objet enregistré !' }) })
+    //     .catch(error => { res.status(400).json({ error }) })
 };
 
 exports.addRating = (req, res, next) => {
@@ -76,9 +108,57 @@ exports.modifyBook = (req, res, next) => {
             if (book.userId != req.auth.userId) {
                 res.status(401).json({ message: 'Not authorized' });
             } else {
-                Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
-                    .then(() => res.status(200).json({ message: 'Objet modifié!' }))
-                    .catch(error => res.status(401).json({ error }));
+                // If new image is loaded (req.file exists)
+                if (req.file) {
+                    const uploadedImagePath = `images/${req.file.filename}`;
+                    const optimizedImagePath = `images/optimized-${req.file.filename}`;
+
+                    // Image Optimisation with sharp
+                    sharp(uploadedImagePath)
+                        .resize({ width: 500 })  // change size of image
+                        .toFormat('jpeg')
+                        .jpeg({ quality: 80 })   // 
+                        .toFile(optimizedImagePath)
+                        .then(() => {
+                            // Delete original image
+                            //console.log(uploadedImagePath);
+                            fs.unlink(uploadedImagePath, (err) => {
+                                if (err) {
+                                    console.error(err);
+                                }
+                            });
+
+                            // Delete old image
+                            if (book.imageUrl) {
+                                const oldImagePath = book.imageUrl.split('/images/')[1];
+                                //console.log(oldImagePath);
+                                fs.unlink(`images/${oldImagePath}`, (err) => {
+                                    if (err) {
+                                        console.error('Erreur with deleting old image:', err);
+                                    }
+                                });
+                            }
+
+                            // Обновляем запись в базе данных с новым оптимизированным изображением
+                            Book.updateOne({ _id: req.params.id }, {
+                                ...bookObject,
+                                imageUrl: `${req.protocol}://${req.get('host')}/${optimizedImagePath}`,
+                                _id: req.params.id
+                            })
+                                .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+                                .catch(error => res.status(401).json({ error }));
+                        })
+                        .catch(error => res.status(500).json({ error: 'Erreur lors de l\'optimisation de l\'image' }));
+                } else {
+                    // Если изображение не изменилось, просто обновляем другие данные книги
+                    Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+                        .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+                        .catch(error => res.status(401).json({ error }));
+                }
+
+                // Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+                //     .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+                //     .catch(error => res.status(401).json({ error }));
             }
         })
         .catch((error) => {
@@ -92,10 +172,7 @@ exports.deleteBook = (req, res, next) => {
             if (book.userId != req.auth.userId) {
                 res.status(401).json({ message: 'Not authorized' });
             } else {
-                console.log(book.imageUrl);
                 const filename = book.imageUrl.split('/images/')[1];
-                console.log(filename);
-                //console.log(`images/${filename});
                 fs.unlink(`images/${filename}`, () => {
                     Book.deleteOne({ _id: req.params.id })
                         .then(() => { res.status(200).json({ message: 'Objet supprimé !' }) })
