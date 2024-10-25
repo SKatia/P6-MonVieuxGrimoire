@@ -22,12 +22,6 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   
-    // // Обработка preflight запросов
-    // if (req.method === 'OPTIONS') {
-    //   return res.status(200).end();
-    // } 
-  
-  
   next();
 });
 
@@ -44,30 +38,5 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 //   });
 // });
 
-// app.get('/api/books', (req, res, next) => {
-//   const books = [
-//     {
-//       _id: 'oeihfzeoi',
-//       title: 'Beliy klyk',
-//       author: 'J. London',
-//       imageUrl: 'https://cdn.pixabay.com/photo/2019/06/11/18/56/camera-4267692_1280.jpg',
-//       year: 1956,
-//       userId: 'qsomihvqios',
-//       genre: 'Romain',
-//       averageRating: 5,
-//     },
-//     {
-//       _id: 'oeihfzeomoihi',
-//       title: 'Zov predkov',
-//       author: 'J. London',
-//       imageUrl: 'https://cdn.pixabay.com/photo/2019/06/11/18/56/camera-4267692_1280.jpg',
-//       year: 1956,
-//       userId: 'qsomihvqios',
-//       genre: 'Romain',
-//       averageRating: 5,
-//     },
-//   ];
-//   res.status(200).json(books);
-// });
 
 module.exports = app;

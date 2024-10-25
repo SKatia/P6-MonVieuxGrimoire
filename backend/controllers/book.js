@@ -11,14 +11,14 @@ exports.createBook = (req, res, next) => {
     const uploadedImagePath = `images/${req.file.filename}`;  // Путь к загруженному файлу
     const optimizedImagePath = `images/optimized-${req.file.filename}`;  // Путь для оптимизированного файла
 
-    // Оптимизация изображения с помощью sharp
+    // Optimisation image - sharp
     sharp(uploadedImagePath)
-        .resize({ width: 500 })  // Меняем размер изображения до 500 пикселей по ширине
-        .toFormat('jpeg')        // Конвертируем изображение в формат jpeg
-        .jpeg({ quality: 80 })   // Устанавливаем качество на 80%
+        .resize({ width: 500 })  // 
+        .toFormat('jpeg')        // 
+        .jpeg({ quality: 80 })   // 
         .toFile(optimizedImagePath)
         .then(() => {
-            // Удаляем оригинальное изображение, если оно больше не нужно
+            // supprime vieux image
             fs.unlink(uploadedImagePath, (err) => {
                 if (err) {
                     console.error(err);
@@ -29,7 +29,7 @@ exports.createBook = (req, res, next) => {
             const book = new Book({
                 ...bookObject,
                 userId: req.auth.userId,
-                imageUrl: `${req.protocol}://${req.get('host')}/${optimizedImagePath}` // Путь к оптимизированному изображению
+                imageUrl: `${req.protocol}://${req.get('host')}/${optimizedImagePath}` // route pour image optimizé
             });
 
             book.save()
@@ -50,7 +50,7 @@ exports.createBook = (req, res, next) => {
 };
 
 exports.addRating = (req, res, next) => {
-    const { rating } = req.body; // Извлекаем рейтинг из тела запроса
+    const { rating } = req.body; // 
     console.log(rating);
     const userId = req.auth.userId;
     console.log(userId);
@@ -66,18 +66,18 @@ exports.addRating = (req, res, next) => {
             }
 
             book.ratings.push({ userId, rating });
-            // Пересчитываем средний рейтинг
+            // 
             const totalRatings = book.ratings.length;
             const totalScore = book.ratings.reduce((acc, rate) => acc + rate.rating, 0);
             const newAverageRating = totalScore / totalRatings;
 
-            // Обновляем средний рейтинг и сохраняем книгу
+            // 
             book.averageRating = Math.round(newAverageRating);
 
             console.log('book.ratings');
             console.log(req.body);
 
-            // Сохраняем книгу с обновлёнными данными
+            // Save book with new data
             book.save()
                 .then((savedBook) => {
                     console.log('Saved book:', savedBook);
@@ -106,7 +106,7 @@ exports.modifyBook = (req, res, next) => {
     Book.findOne({ _id: req.params.id })
         .then((book) => {
             if (book.userId != req.auth.userId) {
-                res.status(401).json({ message: 'Not authorized' });
+                res.status(403).json({ message: 'unauthorized request' });
             } else {
                 // If new image is loaded (req.file exists)
                 if (req.file) {
@@ -139,7 +139,7 @@ exports.modifyBook = (req, res, next) => {
                                 });
                             }
 
-                            // Обновляем запись в базе данных с новым оптимизированным изображением
+                            // Update BD
                             Book.updateOne({ _id: req.params.id }, {
                                 ...bookObject,
                                 imageUrl: `${req.protocol}://${req.get('host')}/${optimizedImagePath}`,
@@ -150,15 +150,12 @@ exports.modifyBook = (req, res, next) => {
                         })
                         .catch(error => res.status(500).json({ error: 'Erreur lors de l\'optimisation de l\'image' }));
                 } else {
-                    // Если изображение не изменилось, просто обновляем другие данные книги
+                    // If image was not changed, update other datd of books
                     Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
                         .then(() => res.status(200).json({ message: 'Objet modifié!' }))
                         .catch(error => res.status(401).json({ error }));
                 }
 
-                // Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
-                //     .then(() => res.status(200).json({ message: 'Objet modifié!' }))
-                //     .catch(error => res.status(401).json({ error }));
             }
         })
         .catch((error) => {
@@ -212,134 +209,3 @@ exports.getBestRating = (req, res, next) => {
     })
     .catch(error => res.status(500).json({ error }));
 };
-
-
-// exports.createBook =  (req, res, next) => {
-//   delete req.body._id;
-//   const book = new Book({
-//     ...req.body
-//   });
-//   book.save()
-//     .then(() => res.status(201).json({ message: 'Objet enregistré !' }))
-//     .catch(error => res.status(400).json({ error }));
-// };
-
-// exports.modifyBook = (req, res, next) => {
-//   const book = new Book({
-//     ...req.body
-//   });
-//   Book.updateOne({_id: req.params.id}, book)
-//   .then(() => { res.status(201).json({ message: 'Book updated successfully!' }); })
-//   .catch((error) => { res.status(400).json({error: error }); });
-// };
-
-// exports.deleteBook = (req, res, next) => {
-//   Book.deleteOne({_id: req.params.id}).then(
-//     () => {
-//       res.status(200).json({
-//         message: 'Deleted!'
-//       });
-//     }
-//   ).catch(
-//     (error) => {
-//       res.status(400).json({
-//         error: error
-//       });
-//     }
-//   );
-// };
-
-// const Thing = require('../models/thing');
-
-// exports.createThing = (req, res, next) => {
-//   const thing = new Thing({
-//     title: req.body.title,
-//     description: req.body.description,
-//     imageUrl: req.body.imageUrl,
-//     price: req.body.price,
-//     userId: req.body.userId
-//   });
-//   thing.save().then(
-//     () => {
-//       res.status(201).json({
-//         message: 'Post saved successfully!'
-//       });
-//     }
-//   ).catch(
-//     (error) => {
-//       res.status(400).json({
-//         error: error
-//       });
-//     }
-//   );
-// };
-
-// exports.getOneThing = (req, res, next) => {
-//   Thing.findOne({
-//     _id: req.params.id
-//   }).then(
-//     (thing) => {
-//       res.status(200).json(thing);
-//     }
-//   ).catch(
-//     (error) => {
-//       res.status(404).json({
-//         error: error
-//       });
-//     }
-//   );
-// };
-
-// exports.modifyThing = (req, res, next) => {
-//   const thing = new Thing({
-//     _id: req.params.id,
-//     title: req.body.title,
-//     description: req.body.description,
-//     imageUrl: req.body.imageUrl,
-//     price: req.body.price,
-//     userId: req.body.userId
-//   });
-//   Thing.updateOne({_id: req.params.id}, thing).then(
-//     () => {
-//       res.status(201).json({
-//         message: 'Thing updated successfully!'
-//       });
-//     }
-//   ).catch(
-//     (error) => {
-//       res.status(400).json({
-//         error: error
-//       });
-//     }
-//   );
-// };
-
-// exports.deleteThing = (req, res, next) => {
-//   Thing.deleteOne({_id: req.params.id}).then(
-//     () => {
-//       res.status(200).json({
-//         message: 'Deleted!'
-//       });
-//     }
-//   ).catch(
-//     (error) => {
-//       res.status(400).json({
-//         error: error
-//       });
-//     }
-//   );
-// };
-
-// exports.getAllStuff = (req, res, next) => {
-//   Thing.find().then(
-//     (things) => {
-//       res.status(200).json(things);
-//     }
-//   ).catch(
-//     (error) => {
-//       res.status(400).json({
-//         error: error
-//       });
-//     }
-//   );
-// };
